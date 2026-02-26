@@ -1,12 +1,6 @@
-# Build folder
-build/
-
-# Executables
-*.exe
-*.out
-organizer
-
-# Object files
-*.o
-*.obj
-
+# Generated folders
+Documents/
+Images/
+Videos/
+Executables/
+Others/
