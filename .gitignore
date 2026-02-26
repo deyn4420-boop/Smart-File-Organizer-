@@ -4,3 +4,9 @@ Images/
 Videos/
 Executables/
 Others/
+
+# Executables
+*.exe
+
+# Build folder
+build/
