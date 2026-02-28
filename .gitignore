@@ -1,3 +1,12 @@
+# Executables
+*.exe
+
+# Build folder
+build/
+
+# Log files
+organizer.log
+
 # Generated folders
 Documents/
 Images/
@@ -5,8 +14,6 @@ Videos/
 Executables/
 Others/
 
-# Executables
-*.exe
 
-# Build folder
-build/
+
+
