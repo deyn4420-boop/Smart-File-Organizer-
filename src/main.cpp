@@ -1,10 +1,11 @@
 #include <iostream>
 #include <filesystem>
 #include <string>
+#include <fstream>
 
 namespace fs = std::filesystem;
 
-// Decide category based on extension
+// Category detection
 std::string getCategory(const std::string& ext) {
     if (ext == ".jpg" || ext == ".png" || ext == ".jpeg")
         return "Images";
@@ -18,19 +19,20 @@ std::string getCategory(const std::string& ext) {
         return "Others";
 }
 
-// Skip important project files
+// Skip project files
 bool shouldSkip(const fs::path& file) {
     std::string name = file.filename().string();
 
     if (name == "organizer.exe" ||
         name == ".gitignore" ||
-        name == "README.md")
+        name == "README.md" ||
+        name == "organizer.log")
         return true;
 
     return false;
 }
 
-// If file already exists, rename: file(1).txt
+// Prevent overwrite
 fs::path getUniquePath(const fs::path& dest) {
     if (!fs::exists(dest))
         return dest;
@@ -41,32 +43,36 @@ fs::path getUniquePath(const fs::path& dest) {
     std::string ext = dest.extension().string();
 
     while (true) {
-        fs::path newPath = parent / (stem + "(" + std::to_string(counter) + ")" + ext);
+        fs::path newPath =
+            parent / (stem + "(" + std::to_string(counter) + ")" + ext);
         if (!fs::exists(newPath))
             return newPath;
         counter++;
     }
 }
 
-int main() {
-    std::cout << "Smart File Organizer - Day 6\n\n";
+int main(int argc, char* argv[]) {
+    std::cout << "Smart File Organizer - Day 8\n\n";
 
-    // Ask user for directory
-    std::string folderPath;
-    std::cout << "Enter folder path to organize (or press Enter for current folder): ";
-    std::getline(std::cin, folderPath);
+    fs::path targetDir = ".";
+    bool dryRun = false;
 
-    fs::path targetDir;
+    // Read command-line arguments
+    for (int i = 1; i < argc; i++) {
+        std::string arg = argv[i];
 
-    if (folderPath.empty())
-        targetDir = ".";
-    else
-        targetDir = folderPath;
+        if (arg == "--dry-run")
+            dryRun = true;
+        else
+            targetDir = arg;
+    }
 
     if (!fs::exists(targetDir) || !fs::is_directory(targetDir)) {
         std::cout << "Invalid directory!\n";
         return 1;
     }
+
+    std::ofstream logFile("organizer.log", std::ios::app);
 
     for (const auto& entry : fs::directory_iterator(targetDir)) {
         if (entry.is_regular_file()) {
@@ -79,24 +85,26 @@ int main() {
 
             fs::path categoryPath = targetDir / category;
 
-            // Create category folder if needed
-            if (!fs::exists(categoryPath))
+            if (!dryRun && !fs::exists(categoryPath))
                 fs::create_directory(categoryPath);
 
             fs::path destination = categoryPath / entry.path().filename();
-
-            // Prevent overwrite
             destination = getUniquePath(destination);
 
-            fs::rename(entry.path(), destination);
+            std::string message =
+                entry.path().filename().string() + " -> " + category;
 
-            std::cout << "Moved: "
-                      << entry.path().filename()
-                      << " -> "
-                      << category << std::endl;
+            if (dryRun) {
+                std::cout << "[DRY RUN] " << message << std::endl;
+            } else {
+                fs::rename(entry.path(), destination);
+                std::cout << "Moved: " << message << std::endl;
+                logFile << "Moved: " << message << std::endl;
+            }
         }
     }
 
-    std::cout << "\nOrganization Complete.\n";
+    std::cout << "\nDone.\n";
+    logFile.close();
     return 0;
 }
