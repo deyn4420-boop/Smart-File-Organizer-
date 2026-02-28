@@ -19,14 +19,19 @@ std::string getCategory(const std::string& ext) {
         return "Others";
 }
 
-// Skip project files
 bool shouldSkip(const fs::path& file) {
     std::string name = file.filename().string();
 
+    // Skip hidden files (start with .)
+    if (!name.empty() && name[0] == '.')
+        return true;
+
+    // Skip system/project files
     if (name == "organizer.exe" ||
         name == ".gitignore" ||
         name == "README.md" ||
-        name == "organizer.log")
+        name == "organizer.log" ||
+        name == "desktop.ini")
         return true;
 
     return false;
@@ -52,10 +57,13 @@ fs::path getUniquePath(const fs::path& dest) {
 }
 
 int main(int argc, char* argv[]) {
-    std::cout << "Smart File Organizer - Day 8\n\n";
+    std::cout << "Smart File Organizer - Day 9\n\n";
 
     fs::path targetDir = ".";
     bool dryRun = false;
+
+    int movedCount = 0;
+    int skippedCount = 0;
 
     // Read command-line arguments
     for (int i = 1; i < argc; i++) {
@@ -77,8 +85,10 @@ int main(int argc, char* argv[]) {
     for (const auto& entry : fs::directory_iterator(targetDir)) {
         if (entry.is_regular_file()) {
 
-            if (shouldSkip(entry.path()))
-                continue;
+            if (shouldSkip(entry.path())) {
+        skippedCount++;
+        continue;
+          }
 
             std::string ext = entry.path().extension().string();
             std::string category = getCategory(ext);
@@ -93,18 +103,26 @@ int main(int argc, char* argv[]) {
 
             std::string message =
                 entry.path().filename().string() + " -> " + category;
+              if (dryRun) {
+            std::cout << "[DRY RUN] " << message << std::endl;
+            movedCount++;
+        } else {
+            fs::rename(entry.path(), destination);
+            std::cout << "Moved: " << message << std::endl;
+            logFile << "Moved: " << message << std::endl;
+            movedCount++;
+        }  
 
-            if (dryRun) {
-                std::cout << "[DRY RUN] " << message << std::endl;
-            } else {
-                fs::rename(entry.path(), destination);
-                std::cout << "Moved: " << message << std::endl;
-                logFile << "Moved: " << message << std::endl;
-            }
+            
         }
     }
 
+    std::cout << "\nSummary:\n";
+    std::cout << "Files moved: " << movedCount << std::endl;
+    std::cout << "Files skipped: " << skippedCount << std::endl;
     std::cout << "\nDone.\n";
+
     logFile.close();
     return 0;
 }
+
